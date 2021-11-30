@@ -25,258 +25,334 @@
   <body bgcolor="white" height="100%" width="100%"> 
     <div id="debug"></div>
     <canvas id="c" width="100%" height="100%" style="-webkit-tap-highlight-color: transparent;"></canvas> 
-
     <script>
-      // Fix me
-var canvas = document.getElementById('c');
-var host = window.location.host;
-var context = canvas.getContext("2d");
-var W = canvas.width  = window.innerWidth-6;
-var H = canvas.height = window.innerHeight-50;
-var wscounter = 0;
-var socket;
-
-function debug(str) {
-    var debugDiv = document.getElementById('debug');
-    debugDiv.innerHTML = "" + str;
-}
-debug("Test");
-
-world = {};
-
-//XXX: TODO Make this prettier!
-function drawCircle(context,entity) {
-    with(context) {
-        beginPath();                
-        lineWidth = 3;
+        // Fix me
+    var canvas = document.getElementById('c');
+    var host = window.location.host;
+    var context = canvas.getContext("2d");
+    var W = canvas.width  = window.innerWidth-6;
+    var H = canvas.height = window.innerHeight-50;
+    var wscounter = 0;
+    var socket;
+     
+    function debug(str) {
+        var debugDiv = document.getElementById('debug');
+        debugDiv.innerHTML = "" + str;
+    }
+    debug("Test");
+     
+    var drawNext = true;
+    world = {};
+    additions = {};
+    hasAdditions = false;
+    
+    //XXX: TODO Make this prettier!
+    // This function is from my implementation of assignment 4 which can be found at 
+    // https://github.com/Patrisha-de-Boon/CMPUT404-assignment-ajax/blob/master/static/script.js
+    function drawCircle(context,entity) {
+        var radius = (entity["radius"])?entity["radius"]:50;
+    
         var x = entity["x"];
         var y = entity["y"];
-        //moveTo(x,y);
-        fillStyle = entity["colour"];
-        strokeStyle = fillStyle;
-        arc(x, y, (entity["radius"])?entity["radius"]:50, 0, 2.0 * Math.PI, false);  
-        stroke();                                
-    }
-}
-
-function prepEntity(entity) {
-    if (!entity["colour"]) {
-        entity["colour"] = "#FF0000";
-    }
-    if (!entity["radius"]) {
-        entity["radius"] = 50;
-    }
-    return entity;
-}
-
-function clearFrame() {
-    with(context) {
-	moveTo(0,0);
-	fillStyle = "#000";
-	fillRect(0,0,W,H);
-    }
-
-}
-
-// This actually draws the frame
-function renderFrame() {
-    clearFrame();
-    for (var key in world) {
-        var entity = world[key];
-        drawCircle(context,prepEntity(entity));
-    }
-}
-
-var drawNext = true;
-// Signals that there's something to be drawn
-function drawNextFrame() {
-    drawNext = true;
-}
-
-// This optionally draws the frame, call this if you're not sure if you should update
-// the canvas
-function drawFrame() {
-    if (drawNext) {
-        renderFrame();
-        drawNext = false;
-    }
-}
-
-// This is unpleasent, canvas clicks are not handled well
-// So use this code, it works well on multitouch devices as well.
-
-function getPosition(e) {
-	if ( e.targetTouches && e.targetTouches.length > 0) {
-		var touch = e.targetTouches[0];
-		var x = touch.pageX  - canvas.offsetLeft;
-		var y = touch.pageY  - canvas.offsetTop;
-		return [x,y];
-	} else {
-		var rect = e.target.getBoundingClientRect();
-		var x = e.offsetX || e.pageX - rect.left - window.scrollX;
-		var y = e.offsetY || e.pageY - rect.top  - window.scrollY;
-		var x = e.pageX  - canvas.offsetLeft;
-		var y = e.pageY  - canvas.offsetTop;
-		return [x,y];
-	}
-}
-
-function addEntity(entity, data) {
-    world[entity] = data;
-    drawNextFrame(); // (but should we?)
-    //XXX: Send a XHTML Request that updates the entity you just modified!
-}
-var counter = 0;
-function addEntityWithoutName(data) {
-    var name = "X"+(counter++)%100;
-    addEntity(name,data);
-}
-
-// canvas + mouse/touch is complicated 
-// I give you this because well the mouse/touch stuff is a total
-// pain to get right. This has some out of context bug too.
-mouse = (function() {
-    // Now this isn't the most popular way of doing OO in 
-    // Javascript, but it relies on lexical scope and I like it
-    // This isn't 301 so I'm not totally bound to OO :)
-    var self;    
-    self = {
-        clicked: 0,
-        // these are listener lists append to them
-        mousemovers: [],
-        mousedraggers: [],
-        mousedowners: [],
-        mouseuppers: [],
-        callListeners: function(listeners,x,y,clicked,e) {
-            for (i in listeners) {
-                listeners[i](x,y,clicked,e);
-            }
-        },
-        wasClicked: function(e) {
-            var pos = getPosition(e);
-            var x = pos[0];
-            var y = pos[1];
-            if (x >= 0 && x <= W && y >= 0 && y <= H) {
-                return 1;
-            } else {
-                return 0;
-            }
-        },
-        mousedown: function(e) {
-            e.preventDefault();
-            if (self.wasClicked(e)) {
-                var pos = getPosition(e);
-                var x = pos[0];
-                var y = pos[1];
-	        self.clicked = 1;
-                self.callListeners(self.mousedowners,x,y,self.clicked,e);
-                //addEntityWithoutName({'x':x,'y':y,'colour':'red'});
-            }
-        },
-        mouseup: function(e) {
-            e.preventDefault();
-            //alert(getPosition(e));
-            if (self.wasClicked(e)) {
-                var pos = getPosition(e);
-                var x = pos[0];
-                var y = pos[1];
-	        //self.poppin(x,y);
-	        self.clicked = 0;
-                self.selected = -1;
-                self.callListeners(self.mouseuppers,x,y,self.clicked,e);
-                //addEntityWithoutName({'x':x,'y':y,'colour':'blue'});
-            }
-        },
-        touchstart: function(e) {
-            self.lasttouch = e;                                         
-            return self.mousedown(e);
-        },
-	touchend: function(e) {
-            var touch = (self.lasttouch)?self.lasttouch:e;
-            return self.mouseup(touch);
-	},
-	mousemove: function(e) {
-            e.preventDefault();
-            if (self.wasClicked(e)) {
-                var pos = getPosition(e);
-                var x = pos[0];
-                var y = pos[1];
-	        if (self.clicked != 0) {
-	            //self.squeakin(x,y);
-                    self.callListeners(self.mousedraggers,x,y,self.clicked,e);
-	        }
-                self.callListeners(self.mousemovers,x,y,self.clicked,e);
-            }            
-	},
-	touchmove: function(e) {
-            self.lasttouch = e;                                         
-            return self.mousemove(e);
-	},
-		                                   
-        // Install the mouse listeners
-	mouseinstall: function() {
-            canvas.addEventListener("mousedown",  self.mousedown, false);
-            canvas.addEventListener("mousemove",  self.mousemove, false);
-            canvas.addEventListener("mouseup",    self.mouseup, false);
-            canvas.addEventListener("mouseout",   self.mouseout, false);
-            canvas.addEventListener("touchstart", self.touchstart, false);
-            canvas.addEventListener("touchmove",  self.touchmove, false);
-            canvas.addEventListener("touchend",   self.touchend, false);
-	}
-    };
-    self.mouseinstall();
-    return self;
-})();
-
-// Add the application specific mouse listeners!
-//XXX: TODO Make these prettier!
-mouse.mousedowners.push(function(x,y,clicked,e) {
-    addEntityWithoutName({'x':x,'y':y,'colour':'blue'});
-});
-
-mouse.mouseuppers.push(function(x,y,clicked,e) {
-    addEntityWithoutName({'x':x,'y':y,'colour':'red'});
-});
-
-mouse.mousedraggers.push(function(x,y,clicked,e) {
-    addEntityWithoutName({'x':x,'y':y,'colour':'green',
-                          'radius':10});
-});
-
-
-function update() {
-    drawFrame();
-}
-
-
-function wsSetup() {
-    var url = "ws://"+host+"/subscribe";   
-    socket = new WebSocket(url);
-    socket.onopen = function() {
-        //XXX: TODO What are you going to do here?
-    };
-    socket.onerror = function(msg) {
-        debug("WebSocket Error:" + msg.data);
-    };
-    socket.onmessage = function(msg) {  
-        try {
-            debug("WebSocket Recv:" + msg.data);
-            //XXX: TODO What are you going to do here?            
-        } catch (e) {
-            alert("socket on message: " + e);
+    
+        context.beginPath();
+        context.lineWidth = entity["strokeWidth"] ? entity["strokeWidth"] : 3;
+        context.x = x;
+        context.y = y;
+        context.strokeStyle = entity["colour"];
+    
+        context.arc(x, y, radius, 0, 2.0 * Math.PI, false);
+    
+        if (entity["fillColour"]){
+            var grd = context.createRadialGradient(x, y, 5, x, y, radius);
+            grd.addColorStop(0, entity["fillColour"]);
+            grd.addColorStop(1, entity["colour"]);
+            context.fillStyle = grd;
+            context.fill()
         }
-    }; 
-}
+        else {
+            context.fillStyle = entity["colour"];
+            context.fill()
+        }
+    
+        context.stroke();     
+    }
+    
+    function prepEntity(entity) {
+        if (!entity["colour"]) {
+            entity["colour"] = "#FF0000";
+        }
+        if (!entity["radius"]) {
+            entity["radius"] = 50;
+        }
+        return entity;
+    }
+     
+    function clearFrame() {
+        with(context) {
+        moveTo(0,0);
+        fillStyle = "#000";
+        fillRect(0,0,W,H);
+        }
+    
+    }
+    
+    // This actually draws the frame
+    function renderFrame() {
+        clearFrame();
+        for (var key in world) {
+            var entity = world[key];
+            drawCircle(context,prepEntity(entity));
+        }
+    }
+    
+    // Signals that there's something to be drawn
+    function drawNextFrame() {
+        drawNext = true;
+    }
+    
+    // This optionally draws the frame, call this if you're not sure if you should update
+    // the canvas
+    function drawFrame() {
+        if (drawNext) {
+            renderFrame();
+            drawNext = false;
+        }
+    }
+    
+    // This is unpleasent, canvas clicks are not handled well
+    // So use this code, it works well on multitouch devices as well.
+    
+    function getPosition(e) {
+        if ( e.targetTouches && e.targetTouches.length > 0) {
+            var touch = e.targetTouches[0];
+            var x = touch.pageX  - canvas.offsetLeft;
+            var y = touch.pageY  - canvas.offsetTop;
+            return [x,y];
+        } else {
+            var rect = e.target.getBoundingClientRect();
+            var x = e.offsetX || e.pageX - rect.left - window.scrollX;
+            var y = e.offsetY || e.pageY - rect.top  - window.scrollY;
+            var x = e.pageX  - canvas.offsetLeft;
+            var y = e.pageY  - canvas.offsetTop;
+            return [x,y];
+        }
+    }
+     
+    function addEntity(entity, data) {
+        world[entity] = data;
+        // drawNextFrame(); // (but should we?)
+        //XXX: Send a XHTML Request that updates the entity you just modified!
+        additions[entity] = data;
+        hasAdditions = true;
+    }
+    
+    var counter = 0;
+    function addEntityWithoutName(data) {
+        var name = "X" + ((counter++) % 100);
+        addEntity(name,data);
+    }
+    
+    // canvas + mouse/touch is complicated 
+    // I give you this because well the mouse/touch stuff is a total
+    // pain to get right. This has some out of context bug too.
+    mouse = (function() {
+        // Now this isn't the most popular way of doing OO in 
+        // Javascript, but it relies on lexical scope and I like it
+        // This isn't 301 so I'm not totally bound to OO :)
+        var self;    
+        self = {
+            clicked: 0,
+            // these are listener lists append to them
+            mousemovers: [],
+            mousedraggers: [],
+            mousedowners: [],
+            mouseuppers: [],
+            callListeners: function(listeners,x,y,clicked,e) {
+                for (i in listeners) {
+                    listeners[i](x,y,clicked,e);
+                }
+            },
+            wasClicked: function(e) {
+                var pos = getPosition(e);
+                var x = pos[0];
+                var y = pos[1];
+                if (x >= 0 && x <= W && y >= 0 && y <= H) {
+                    return 1;
+                } else {
+                    return 0;
+                }
+            },
+            mousedown: function(e) {
+                e.preventDefault();
+                if (self.wasClicked(e)) {
+                    var pos = getPosition(e);
+                    var x = pos[0];
+                    var y = pos[1];
+                self.clicked = 1;
+                    self.callListeners(self.mousedowners,x,y,self.clicked,e);
+                    //addEntityWithoutName({'x':x,'y':y,'colour':'red'});
+                }
+            },
+            mouseup: function(e) {
+                e.preventDefault();
+                //alert(getPosition(e));
+                if (self.wasClicked(e)) {
+                    var pos = getPosition(e);
+                    var x = pos[0];
+                    var y = pos[1];
+                //self.poppin(x,y);
+                self.clicked = 0;
+                    self.selected = -1;
+                    self.callListeners(self.mouseuppers,x,y,self.clicked,e);
+                    //addEntityWithoutName({'x':x,'y':y,'colour':'blue'});
+                }
+            },
+            touchstart: function(e) {
+                self.lasttouch = e;                                         
+                return self.mousedown(e);
+            },
+        touchend: function(e) {
+                var touch = (self.lasttouch)?self.lasttouch:e;
+                return self.mouseup(touch);
+        },
+        mousemove: function(e) {
+                e.preventDefault();
+                if (self.wasClicked(e)) {
+                    var pos = getPosition(e);
+                    var x = pos[0];
+                    var y = pos[1];
+                if (self.clicked != 0) {
+                    //self.squeakin(x,y);
+                        self.callListeners(self.mousedraggers,x,y,self.clicked,e);
+                }
+                    self.callListeners(self.mousemovers,x,y,self.clicked,e);
+                }            
+        },
+        touchmove: function(e) {
+                self.lasttouch = e;                                         
+                return self.mousemove(e);
+        },
+                                            
+            // Install the mouse listeners
+        mouseinstall: function() {
+                canvas.addEventListener("mousedown",  self.mousedown, false);
+                canvas.addEventListener("mousemove",  self.mousemove, false);
+                canvas.addEventListener("mouseup",    self.mouseup, false);
+                canvas.addEventListener("mouseout",   self.mouseout, false);
+                canvas.addEventListener("touchstart", self.touchstart, false);
+                canvas.addEventListener("touchmove",  self.touchmove, false);
+                canvas.addEventListener("touchend",   self.touchend, false);
+        }
+        };
+        self.mouseinstall();
+        return self;
+    })();
+    
+    // The following three functions are from implementation of assignment 4 which can be found at 
+    // https://github.com/Patrisha-de-Boon/CMPUT404-assignment-ajax/blob/master/static/script.js
+    // These were adapted from kirilloid's answer (later updated by N3R4ZZuRR0) to this question 
+    // https://stackoverflow.com/questions/9733288/how-to-programmatically-calculate-the-contrast-ratio-between-two-colors/9733420#9733420
+    // about calculating the contrast between two colors
+    function get_luminance(r, g, b) {
+        var a = [r, g, b].map(function (v) {
+            v /= 255;
+            return v <= 0.03928
+                ? v / 12.92
+                : Math.pow( (v + 0.055) / 1.055, 2.4 );
+        });
+        return a[0] * 0.2126 + a[1] * 0.7152 + a[2] * 0.0722;
+    }
 
-wsSetup();
+    function get_contrast(rgb1, rgb2) {
+        var lum1 = get_luminance(rgb1[0], rgb1[1], rgb1[2]);
+        var lum2 = get_luminance(rgb2[0], rgb2[1], rgb2[2]);
+        var brightest = Math.max(lum1, lum2);
+        var darkest = Math.min(lum1, lum2);
+        return (brightest + 0.05)
+            / (darkest + 0.05);
+    }
 
+    // Generate a random colour for each session. Make sure it contrasts
+    // with the dark background
+    function generateColour(){
+        const background = [0, 0, 0];
+        var newColour = [0, 0, 0];
+        var contrast = 0;
+        while(contrast < 0.1) {
+            newColour = [Math.floor(Math.random()*255), Math.floor(Math.random()*255), Math.floor(Math.random()*255)];
+            contrast = get_contrast(newColour, background);
+        }
 
+        return "rgb(" + newColour[0] + "," + newColour[1] + "," +newColour[2] + ")";
+    }
 
+    var myColor = generateColour();
+    
+    // Add the application specific mouse listeners!
+    //XXX: TODO Make these prettier!
+    
+    // These mouse events are from my implementation of assignment 4 which can be found at 
+    // https://github.com/Patrisha-de-Boon/CMPUT404-assignment-ajax/blob/master/static/script.js
+    mouse.mousedowners.push(function(x,y,clicked,e) {
+        addEntityWithoutName({'x':x, 'y':y, 'colour': myColor, 'fillColour': 'black', 'strokeWidth': 5, 'radius':50});
+    });
+    
+    mouse.mouseuppers.push(function(x,y,clicked,e) {
+        addEntityWithoutName({'x':x, 'y':y, 'colour': myColor, 'fillColour': 'white', 'strokeWidth': 5, 'radius':50});
+    });
+    
+    mouse.mousedraggers.push(function(x,y,clicked,e) {
+        addEntityWithoutName({'x':x, 'y':y, 'colour':myColor, 'fillColour': myColor, 'strokeWidth': 3, 'radius':10});
+    });
+    
+    ////////
+    // The following 2 functions are adapted from my implementation of assignment 4 which can be found at 
+    // https://github.com/Patrisha-de-Boon/CMPUT404-assignment-ajax/blob/master/static/script.js
+    // which are adapted from 
+    // https://github.com/uofa-cmput404/cmput404-slides/blob/master/examples/ObserverExampleAJAX/static/observer.js
+    ////////
+    
+    function updateWorldWith(objs) {
+        for (var key in objs) {
+            world[key] = objs[key];
+        }
+        drawNextFrame();
+    }
+        
+    function update(socket) {
+        if (additions && hasAdditions){
+            hasAdditions = false;
+            socket.send(JSON.stringify(additions))
+            additions = {};
+        }
 
-// 30 frames per second
-setInterval( update, 1000/30.0);
+        drawFrame();
+    }
+    
+    function wsSetup() {
+        var url = "ws://"+host+"/subscribe";   
+        socket = new WebSocket(url);
+        socket.onopen = function() {
+            //XXX: TODO What are you going to do here?
+            // 30 frames per second
+            setInterval(() => { update(socket) }, 1000/30.0);
+        };
+        socket.onerror = function(msg) {
+            debug("WebSocket Error:" + msg.data);
+        };
+        socket.onmessage = function(msg) {  
+            try {
+                debug("WebSocket Recv:" + msg.data);
+                //XXX: TODO What are you going to do here?     
+                updateWorldWith(JSON.parse(msg.data));       
+            } catch (e) {
+                alert("socket on message: " + e);
+            }
+        }; 
+    }
 
-
+    wsSetup();
     </script>
 </body>
 </html>

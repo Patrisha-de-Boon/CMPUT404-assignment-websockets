@@ -20,13 +20,13 @@ pip install -r requirements.txt
 Contributors / Licensing
 ========================
 
-Generally everything is LICENSE'D under the Apache 2 license by Abram Hindle.
+Generally everything is LICENSE'D under the Apache 2 license by Abram Hindle and Patrisha de Boon.
 
 freetests.py is LICENSE'D under a BSD-like license:
 
 From ws4py
 
-Copyright (c) 2011-2014, Sylvain Hellegouarch, Abram Hindle
+Copyright (c) 2011-2014, Sylvain Hellegouarch, Abram Hindle, Patrisha de Boon
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -53,9 +53,49 @@ CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 POSSIBILITY OF SUCH DAMAGE.
 
+--
+
+The following documentation was also referenced to learn how to use the flask_sockets library.
+  https://github.com/kennethreitz/flask-sockets
+
+flask-sockets is LICENSE'D under an MIT license:
+
+From flask-sockets
+
+Copyright (C) 2013 Kenneth Reitz
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+--
+
+Additionally, the following documentation was referenced to learn how to use WebSockets in javascript 
+  https://developer.mozilla.org/en-US/docs/Web/API/WebSocket
+
+And the WebSocket example from Abram Hindle's github page was also used to learn how to work with 
+websockets, especially using the flask_sockets framework. This has an Apache License.
+  https://github.com/abramhindle/WebSocketsExamples
+
+Some code was used from Patrisha de Boon's implementation of Assignment 4. This uses the same license
+as this Assignment 5 project.
+  https://github.com/Patrisha-de-Boon/CMPUT404-assignment-ajax
+
+This code from Asssignment 4 includes sections developed using the following two references:
+The following documentation was referenced to learn how to use radial gradients
+  https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/createRadialGradient
+
+Some code from kirilloid's answer (later updated by N3R4ZZuRR0) to the following
+question was used in order to calculate the contrast between two colours
+  https://stackoverflow.com/questions/9733288/how-to-programmatically-calculate-the-contrast-ratio-between-two-colors/9733420#9733420 
+
+
 Contributors
 ============
 
 * Mark Galloway
 * Abram Hindle
 * Cole Mackenzie
+* Patrisha de Boon
